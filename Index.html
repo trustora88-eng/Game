@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sci-Math Master Game: Learn & Quiz</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        .game-card { background: #1e293b; border-radius: 16px; padding: 24px; max-width: 520px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 20px; background: #0f172a; padding: 12px 16px; border-radius: 10px; align-items: center; }
+        .stat-box { font-weight: bold; color: #38bdf8; font-size: 0.95rem; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        h2 { color: #38bdf8; margin-top: 0; }
+        p { line-height: 1.5; color: #cbd5e1; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; transition: background 0.2s; text-align: center; }
+        .btn:hover { background: #2563eb; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #64748b; }
+        .level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .level-btn { background: #334155; color: white; border: 2px solid #475569; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; }
+        .level-btn:hover, .level-btn.unlocked { border-color: #38bdf8; background: #1e293b; }
+        .question-box { font-size: 1.05rem; margin-bottom: 15px; background: #334155; padding: 16px; border-radius: 10px; border-left: 4px solid #38bdf8; }
+        .options-grid { display: flex; flex-direction: column; gap: 10px; }
+        .opt-btn { background: #475569; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-size: 1rem; cursor: pointer; text-align: left; transition: all 0.2s; }
+        .opt-btn:hover { background: #38bdf8; color: #0f172a; font-weight: bold; }
+        .explanation { margin-top: 15px; padding: 12px; background: #064e3b; color: #a7f3d0; border-radius: 8px; display: none; }
+        .learning-content { background: #334155; padding: 15px; border-radius: 10px; max-height: 300px; overflow-y: auto; margin-bottom: 15px; }
+        .badge { background: #eab308; color: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: inline-block; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="game-card">
+    <div class="header">
+        <div class="stat-box">Saved Level: <span id="saved-lvl-display">1</span></div>
+        <div class="stat-box">XP: <span id="xp-display">0</span></div>
+    </div>
+
+    <!-- MENU SCREEN -->
+    <div id="menu-screen" class="screen active">
+        <h2>🚀 Sci-Math Master Hub</h2>
+        <p>Apna manchaha level chunhein aur mode select karein. Aapka progress automatic save ho jayega!</p>
+        
+        <p style="margin-bottom: 5px; font-weight: bold;">Level Choose Karein:</p>
+        <div class="level-grid">
+            <button class="level-btn" onclick="selectLevel(1)">Lvl 1<br><small>Basics</small></button>
+            <button class="level-btn" onclick="selectLevel(2)">Lvl 2<br><small>Inter.</small></button>
+            <button class="level-btn" onclick="selectLevel(3)">Lvl 3<br><small>Advanced</small></button>
+        </div>
+
+        <div id="mode-selection" style="margin-top: 20px; display: none;">
+            <p>Selected Level: <b id="current-chosen-lvl" style="color: #38bdf8;">1</b></p>
+            <button class="btn" onclick="openLearningMode()">📖 1. Pehle Topic Sikhein (Learning Mode)</button>
+            <button class="btn btn-secondary" onclick="openQuizMode()">⚔️ 2. Test Dein (Questioning Mode)</button>
+        </div>
+    </div>
+
+    <!-- LEARNING SCREEN -->
+    <div id="learning-screen" class="screen">
+        <span class="badge" id="learning-badge">LEARNING MODE</span>
+        <h3 id="learning-title" style="margin-top:0; color:#38bdf8;">Topic Title</h3>
+        <div class="learning-content" id="learning-text-box">Loading...</div>
+        <button class="btn" onclick="openQuizMode()">Ab Test Shuru Karein ➔</button>
+        <button class="btn btn-secondary" onclick="goHome()">🏠 Main Menu</button>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="screen">
+        <span class="badge" id="quiz-badge">QUESTIONING MODE</span>
+        <div class="question-box" id="question-text">Question loading...</div>
+        <div class="options-grid" id="options-container"></div>
+        <div class="explanation" id="explanation-box"></div>
+        <button class="btn" id="next-btn" style="display:none; margin-top:15px;" onclick="nextStep()">Agla Sawaal ➔</button>
+        <button class="btn btn-secondary" style="margin-top:10px;" onclick="goHome()">🏠 Exit & Save Progress</button>
+    </div>
+</div>
+
+<script>
+// Game Data for Levels (Learning Content + Questions)
+const gameData = {
+    1: {
+        title: "Level 1: Basics (Kinematics & Algebra)",
+        learning: `
+            <b>1. Physics (Speed & Time):</b><br>
+            Speed ka matlab hai ki koi object ek second me kitni doori tay karta hai.<br>
+            Formula: <code>Speed = Distance / Time</code><br>
+            Example: 100 meters ki distance 10 seconds me = 100/10 = 10 m/s.<br><br>
+            <b>2. Chemistry (Water Formula):</b><br>
+            H₂O ka matlab hai 2 Hydrogen ke atoms aur 1 Oxygen ka atom milkar paani banate hain.<br><br>
+            <b>3. Maths (Linear Equations):</b><br>
+            Agar 2x + 5 = 15 hai, toh +5 ko doosri taraf bhejne par minus hota hai: 2x = 10 => x = 5.
+        `,
+        questions: [
+            {
+                q: "Agar ek car 10 seconds me 100 meters travel karti hai, toh speed kya hogi?",
+                options: ["5 m/s", "10 m/s", "100 m/s", "50 m/s"],
+                correct: 1,
+                exp: "Speed = Distance ÷ Time (100 ÷ 10 = 10 m/s)."
+            },
+            {
+                q: "Water (Pani) ke formula H₂O me Hydrogen ke kitne atoms hote hain?",
+                options: ["1", "2", "3", "0"],
+                correct: 1,
+                exp: "H₂O me H ke aage 2 likha hai, matlab 2 Hydrogen atoms."
+            },
+            {
+                q: "Agar 2x + 5 = 15 hai, toh x ki value kya hogi?",
+                options: ["10", "2", "5", "8"],
+                correct: 2,
+                exp: "2x = 15 - 5 => 2x = 10 => x = 5."
+            }
+        ]
+    },
+    2: {
+        title: "Level 2: Intermediate (Newton's Laws & Periodic Table)",
+        learning: `
+            <b>1. Physics (Newton's Second Law):</b><br>
+            Force aur Acceleration ka rista batata hai ye law.<br>
+            Formula: <code>Force (F) = Mass (m) × Acceleration (a)</code><br>
+            Example: 20 N force aur 5 kg mass ho toh acceleration = 20/5 = 4 m/s².<br><br>
+            <b>2. Chemistry (Carbon & Atomic Number):</b><br>
+            Periodic table me elements ko unke protons ke count (Atomic Number) se rakha jata hai. Carbon ka atomic number 6 hota hai.
+        `,
+        questions: [
+            {
+                q: "5 kg ke object par 20 N force lagane par acceleration kitna hoga? (F = m × a)",
+                options: ["4 m/s²", "100 m/s²", "15 m/s²", "2.5 m/s²"],
+                correct: 0,
+                exp: "a = F / m => 20 / 5 = 4 m/s²."
+            },
+            {
+                q: "Carbon ka Atomic Number kitna hota hai?",
+                options: ["4", "8", "6", "12"],
+                correct: 2,
+                exp: "Carbon ka atomic number 6 hota hai aur ye organic chemistry ka base hai."
+            }
+        ]
+    },
+    3: {
+        title: "Level 3: Advanced (Calculus & Mechanics)",
+        learning: `
+            <b>1. Maths (Calculus Derivatives):</b><br>
+            Derivative ka matlab hota hai kisi cheez ke badlav ki speed (Rate of Change) nikalna.<br>
+            Power Rule: <code>d/dx(xⁿ) = n · xⁿ⁻¹</code><br>
+            Example: d/dx(x²) = 2 · x¹ = 2x.
+        `,
+        questions: [
+            {
+                q: "Mathematics me x² ka Derivative d/dx(x²) kya hota hai?",
+                options: ["x", "2x", "x³", "2"],
+                correct: 1,
+                exp: "Power rule ke mutabiq 2 samne aa jata hai aur power me 1 minus ho jata hai (2x)."
+            }
+        ]
+    }
+};
+
+let activeLevel = 1;
+let currentQIdx = 0;
+let xp = 0;
+
+// Load Saved State from LocalStorage on Startup
+window.onload = function() {
+    const savedLvl = localStorage.getItem('user_game_level');
+    const savedXp = localStorage.getItem('user_game_xp');
+    
+    if (savedLvl) activeLevel = parseInt(savedLvl);
+    if (savedXp) xp = parseInt(savedXp);
+
+    document.getElementById("saved-lvl-display").innerText = activeLevel;
+    document.getElementById("xp-display").innerText = xp;
+};
+
+function selectLevel(lvl) {
+    activeLevel = lvl;
+    document.getElementById("current-chosen-lvl").innerText = lvl;
+    document.getElementById("mode-selection").style.display = "block";
+    saveProgress();
+}
+
+function saveProgress() {
+    localStorage.setItem('user_game_level', activeLevel);
+    localStorage.setItem('user_game_xp', xp);
+    document.getElementById("saved-lvl-display").innerText = activeLevel;
+    document.getElementById("xp-display").innerText = xp;
+}
+
+function openLearningMode() {
+    const data = gameData[activeLevel];
+    document.getElementById("learning-title").innerText = data.title;
+    document.getElementById("learning-text-box").innerHTML = data.learning;
+    
+    switchScreen("learning-screen");
+}
+
+function openQuizMode() {
+    currentQIdx = 0;
+    loadQuestion();
+    switchScreen("quiz-screen");
+}
+
+function loadQuestion() {
+    const data = gameData[activeLevel];
+    if (currentQIdx >= data.questions.length) {
+        document.getElementById("question-text").innerText = `🎉 Mubarak ho! Aapne Level ${activeLevel} successfully complete kar liya!`;
+        document.getElementById("options-container").innerHTML = `<button class="btn" onclick="goHome()">Menu Par Wapas Jayein</button>`;
+        document.getElementById("explanation-box").style.display = "none";
+        document.getElementById("next-btn").style.display = "none";
+        
+        // Auto unlock next level if available
+        if (activeLevel < 3) {
+            activeLevel++;
+            saveProgress();
+        }
+        return;
+    }
+
+    const qObj = data.questions[currentQIdx];
+    document.getElementById("question-text").innerText = `Sawaal ${currentQIdx + 1}: ${qObj.q}`;
+    
+    const container = document.getElementById("options-container");
+    container.innerHTML = "";
+    document.getElementById("explanation-box").style.display = "none";
+    document.getElementById("next-btn").style.display = "none";
+
+    qObj.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "opt-btn";
+        btn.innerText = (idx + 1) + ". " + opt;
+        btn.onclick = () => checkAns(idx, qObj.correct, qObj.exp);
+        container.appendChild(btn);
+    });
+}
+
+function checkAns(selected, correct, exp) {
+    const expBox = document.getElementById("explanation-box");
+    const nextBtn = document.getElementById("next-btn");
+    const btns = document.querySelectorAll(".opt-btn");
+    
+    btns.forEach(b => b.disabled = true);
+
+    if (selected === correct) {
+        xp += 30;
+        saveProgress();
+        expBox.innerHTML = `✅ <b>Sahi Jawab! (+30 XP)</b><br>${exp}`;
+        expBox.style.background = "#064e3b";
+    } else {
+        expBox.innerHTML = `❌ <b>Galat Jawab!</b><br>${exp}`;
+        expBox.style.background = "#7f1d1d";
+    }
+    expBox.style.display = "block";
+    nextBtn.style.display = "block";
+}
+
+function nextStep() {
+    currentQIdx++;
+    loadQuestion();
+}
+
+function switchScreen(screenId) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(screenId).classList.add("active");
+}
+
+function goHome() {
+    saveProgress();
+    switchScreen("menu-screen");
+}
+</script>
+
+</body>
+</html>
+
