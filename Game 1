@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class 7 Science Master Game</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        .game-card { background: #1e293b; border-radius: 16px; padding: 24px; max-width: 520px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 20px; background: #0f172a; padding: 12px 16px; border-radius: 10px; align-items: center; }
+        .stat-box { font-weight: bold; color: #38bdf8; font-size: 0.95rem; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        h2 { color: #38bdf8; margin-top: 0; }
+        p { line-height: 1.5; color: #cbd5e1; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; transition: background 0.2s; text-align: center; }
+        .btn:hover { background: #2563eb; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #64748b; }
+        .level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .level-btn { background: #334155; color: white; border: 2px solid #475569; padding: 12px; border-radius: 10px; font-size: 0.95rem; font-weight: bold; cursor: pointer; text-align: center; }
+        .level-btn:hover { border-color: #38bdf8; background: #1e293b; }
+        .question-box { font-size: 1.05rem; margin-bottom: 15px; background: #334155; padding: 16px; border-radius: 10px; border-left: 4px solid #38bdf8; }
+        .options-grid { display: flex; flex-direction: column; gap: 10px; }
+        .opt-btn { background: #475569; color: white; border: none; padding: 12px 16px; border-radius: 8px; font-size: 1rem; cursor: pointer; text-align: left; transition: all 0.2s; }
+        .opt-btn:hover { background: #38bdf8; color: #0f172a; font-weight: bold; }
+        .explanation { margin-top: 15px; padding: 12px; background: #064e3b; color: #a7f3d0; border-radius: 8px; display: none; }
+        .learning-content { background: #334155; padding: 15px; border-radius: 10px; max-height: 300px; overflow-y: auto; margin-bottom: 15px; }
+        .badge { background: #eab308; color: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: inline-block; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="game-card">
+    <div class="header">
+        <div class="stat-box">Class 7 Science</div>
+        <div class="stat-box">XP: <span id="xp-display">0</span></div>
+    </div>
+
+    <!-- MENU SCREEN -->
+    <div id="menu-screen" class="screen active">
+        <h2>🧬 Class 7 Science Explorer</h2>
+        <p>Apna Chapter/Level chuno aur Science ke mazedar concepts sikho!</p>
+        
+        <p style="margin-bottom: 5px; font-weight: bold;">Level Choose Karein:</p>
+        <div class="level-grid">
+            <button class="level-btn" onclick="selectLevel(1)">Lvl 1<br><small>Plants/Heat</small></button>
+            <button class="level-btn" onclick="selectLevel(2)">Lvl 2<br><small>Acid/Base</small></button>
+            <button class="level-btn" onclick="selectLevel(3)">Lvl 3<br><small>Motion/Current</small></button>
+        </div>
+
+        <div id="mode-selection" style="margin-top: 20px; display: none;">
+            <p>Selected Chapter Level: <b id="current-chosen-lvl" style="color: #38bdf8;">1</b></p>
+            <button class="btn" onclick="openLearningMode()">📖 Pehle Topic Samjho (Learning Mode)</button>
+            <button class="btn btn-secondary" onclick="openQuizMode()">⚔️ Quiz Khelo (Questioning Mode)</button>
+        </div>
+    </div>
+
+    <!-- LEARNING SCREEN -->
+    <div id="learning-screen" class="screen">
+        <span class="badge">LEARNING MODE</span>
+        <h3 id="learning-title" style="margin-top:0; color:#38bdf8;">Topic Title</h3>
+        <div class="learning-content" id="learning-text-box">Loading...</div>
+        <button class="btn" onclick="openQuizMode()">Ab Test Shuru Karein ➔</button>
+        <button class="btn btn-secondary" onclick="goHome()">🏠 Main Menu</button>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="screen">
+        <span class="badge">QUESTIONING MODE</span>
+        <div class="question-box" id="question-text">Question loading...</div>
+        <div class="options-grid" id="options-container"></div>
+        <div class="explanation" id="explanation-box"></div>
+        <button class="btn" id="next-btn" style="display:none; margin-top:15px;" onclick="nextStep()">Agla Sawaal ➔</button>
+        <button class="btn btn-secondary" style="margin-top:10px;" onclick="goHome()">🏠 Exit & Save Progress</button>
+    </div>
+</div>
+
+<script>
+const gameData = {
+    1: {
+        title: "Level 1: Nutrition in Plants & Heat",
+        learning: `
+            <b>1. Photosynthesis (Prakash Synthesis):</b><br>
+            Paudhe apna bhojan Suraj ki roshni, Water, CO₂, aur Chlorophyll ki madad se banate hain.<br><br>
+            <b>2. Heat Transfer (Conduction, Convection, Radiation):</b><br>
+            * Conduction: Solid me heat pass hona (Jaise metal spoon garama hona).<br>
+            * Convection: Liquid aur Gas me heat pass hona.<br>
+            * Radiation: Bina kisi medium ke heat aana (Jaise Suraj ki dhoop).
+        `,
+        questions: [
+            {
+                q: "Paudho me patti (leaves) ka hara rang kis vajah se hota hai?",
+                options: ["Stomata", "Chlorophyll", "Water", "Nitrogen"],
+                correct: 1,
+                exp: "Chlorophyll ke karan pattiyan hari hoti hain aur ye Photosynthesis me help karta hai."
+            },
+            {
+                q: "Suraj ki heat Earth tak kis process se pahunchti hai?",
+                options: ["Conduction", "Convection", "Radiation", "Friction"],
+                correct: 2,
+                exp: "Radiation ke liye kisi medium (air/water) ki zaroorat nahi hoti."
+            }
+        ]
+    },
+    2: {
+        title: "Level 2: Acids, Bases & Salts",
+        learning: `
+            <b>1. Acid (Aml):</b><br>
+            * Swad me khatte hote hain.<br>
+            * Blue Litmus paper ko RED kar dete hain.<br>
+            * Example: Nimbu (Citric Acid), Dahi (Lactic Acid).<br><br>
+            <b>2. Base (Kshar):</b><br>
+            * Swad me kadwe aur kadak/soap jaisey hote hain.<br>
+            * Red Litmus paper ko BLUE kar dete hain.<br>
+            * Example: Sabun, Baking Soda.
+        `,
+        questions: [
+            {
+                q: "Acid Blue Litmus paper ko kis rang me badal deta hai?",
+                options: ["Yellow", "Green", "Red", "Pink"],
+                correct: 2,
+                exp: "Acid Blue litmus ko Red karta hai (Trick: Acid Danger = Red)."
+            },
+            {
+                q: "Dahi (Curd) me kaun sa acid hota hai?",
+                options: ["Lactic Acid", "Citric Acid", "Acetic Acid", "Formic Acid"],
+                correct: 0,
+                exp: "Dahi me Lactic Acid hota hai jo ise khatta banata hai."
+            }
+        ]
+    },
+    3: {
+        title: "Level 3: Motion, Time & Electric Current",
+        learning: `
+            <b>1. Speed (Gati):</b><br>
+            Formula: <code>Speed = Total Distance / Total Time</code><br>
+            Speed ki SI Unit = m/s (Meter per second).<br><br>
+            <b>2. Heating Effect of Current:</b><br>
+            Jab kisi wire se electricity flow hoti hai toh wo garam ho jata hai (Jaise Electric Heater, Bulb, Fuse wire).
+        `,
+        questions: [
+            {
+                q: "Speed ka sahi Formula kya hai?",
+                options: ["Speed = Distance × Time", "Speed = Distance / Time", "Speed = Time / Distance", "Speed = Distance + Time"],
+                correct: 1,
+                exp: "Speed = Distance ÷ Time hota hai."
+            },
+            {
+                q: "Electric Safety ke liye circuit me kya lagaya jata hai jo jaldi pighal jata hai?",
+                options: ["Switch", "Fuse Wire", "Copper Wire", "Battery"],
+                correct: 1,
+                exp: "Fuse Wire over-current hone par pighal kar circuit ko tod deta hai aur haadse se bachata hai."
+            }
+        ]
+    }
+};
+
+let activeLevel = 1;
+let currentQIdx = 0;
+let xp = 0;
+
+window.onload = function() {
+    const savedXp = localStorage.getItem('c7_science_xp');
+    if (savedXp) xp = parseInt(savedXp);
+    document.getElementById("xp-display").innerText = xp;
+};
+
+function selectLevel(lvl) {
+    activeLevel = lvl;
+    document.getElementById("current-chosen-lvl").innerText = lvl;
+    document.getElementById("mode-selection").style.display = "block";
+}
+
+function saveProgress() {
+    localStorage.setItem('c7_science_xp', xp);
+    document.getElementById("xp-display").innerText = xp;
+}
+
+function openLearningMode() {
+    const data = gameData[activeLevel];
+    document.getElementById("learning-title").innerText = data.title;
+    document.getElementById("learning-text-box").innerHTML = data.learning;
+    switchScreen("learning-screen");
+}
+
+function openQuizMode() {
+    currentQIdx = 0;
+    loadQuestion();
+    switchScreen("quiz-screen");
+}
+
+function loadQuestion() {
+    const data = gameData[activeLevel];
+    if (currentQIdx >= data.questions.length) {
+        document.getElementById("question-text").innerText = `🎉 Mubarak ho! Aapne Class 7 Science Level ${activeLevel} complete kar liya!`;
+        document.getElementById("options-container").innerHTML = `<button class="btn" onclick="goHome()">Main Menu Par Jayein</button>`;
+        document.getElementById("explanation-box").style.display = "none";
+        document.getElementById("next-btn").style.display = "none";
+        return;
+    }
+
+    const qObj = data.questions[currentQIdx];
+    document.getElementById("question-text").innerText = `Q${currentQIdx + 1}: ${qObj.q}`;
+    
+    const container = document.getElementById("options-container");
+    container.innerHTML = "";
+    document.getElementById("explanation-box").style.display = "none";
+    document.getElementById("next-btn").style.display = "none";
+
+    qObj.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "opt-btn";
+        btn.innerText = (idx + 1) + ". " + opt;
+        btn.onclick = () => checkAns(idx, qObj.correct, qObj.exp);
+        container.appendChild(btn);
+    });
+}
+
+function checkAns(selected, correct, exp) {
+    const expBox = document.getElementById("explanation-box");
+    const nextBtn = document.getElementById("next-btn");
+    const btns = document.querySelectorAll(".opt-btn");
+    
+    btns.forEach(b => b.disabled = true);
+
+    if (selected === correct) {
+        xp += 50;
+        saveProgress();
+        expBox.innerHTML = `✅ <b>Sahi Jawab! (+50 XP)</b><br>${exp}`;
+        expBox.style.background = "#064e3b";
+    } else {
+        expBox.innerHTML = `❌ <b>Galat Jawab!</b><br>${exp}`;
+        expBox.style.background = "#7f1d1d";
+    }
+    expBox.style.display = "block";
+    nextBtn.style.display = "block";
+}
+
+function nextStep() {
+    currentQIdx++;
+    loadQuestion();
+}
+
+function switchScreen(screenId) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(screenId).classList.add("active");
+}
+
+function goHome() {
+    saveProgress();
+    switchScreen("menu-screen");
+}
+</script>
+
+</body>
+</html>
